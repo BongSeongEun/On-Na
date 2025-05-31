@@ -6,4 +6,12 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="28"
         tools:ignore="GoogleAppIndexingWarning"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <meta-data
+        android:name="com.kakao.sdk.AppKey"
+        android:value="af4090bcb38c232706f16d89108545a6" />
+
+
 </manifest>

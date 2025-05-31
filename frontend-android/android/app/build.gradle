@@ -116,4 +116,8 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // Kakao SDK
+    implementation "com.kakao.sdk:v2-user:2.19.0"
+    implementation "com.kakao.sdk:v2-auth:2.19.0"
 }

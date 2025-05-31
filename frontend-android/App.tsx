@@ -8,7 +8,6 @@ import Login from './src/pages/Login';
 const Stack = createNativeStackNavigator();
 
 function App() {
-
   useEffect(() => {
     SplashScreen.show();
     setTimeout(() => {
