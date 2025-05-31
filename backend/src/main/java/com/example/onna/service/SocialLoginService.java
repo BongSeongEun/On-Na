@@ -12,13 +12,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Date;
 import java.util.Map;
 
 @Service
-public class KakaoLoginService {
+public class SocialLoginService {
 
     private final UserRepository userRepository;
     private final RestTemplate restTemplate = new RestTemplate();
@@ -28,18 +26,13 @@ public class KakaoLoginService {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    String access_token;
-    String refresh_token;
-    String requestURL = "https://kauth.kakao.com/oauth/token";
-
-    public KakaoLoginService(UserRepository userRepository) {
+    public SocialLoginService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-
     public String kakaoLogin(String kakaoAccessToken) {
         Map kakaoUser = getKakaoUser(kakaoAccessToken);
-        Long kakaoId = Long.valueOf(kakaoUser.get("id").toString());
+        String kakaoId = kakaoUser.get("id").toString();
         Map<String, Object> kakaoAccount = (Map) kakaoUser.get("kakao_account");
         String email = (String) kakaoAccount.get("email");
         String nickname = (String) ((Map) kakaoAccount.get("profile")).get("nickname");
@@ -61,6 +54,26 @@ public class KakaoLoginService {
         );
 
         return response.getBody();
+    }
+
+    public String googleLogin(String googleAccessToken) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(googleAccessToken);
+        HttpEntity<?> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "https://www.googleapis.com/oauth2/v3/userinfo", HttpMethod.GET, entity, Map.class);
+        Map<String, Object> body = response.getBody();
+
+        String googleId = (String) body.get("sub");
+        String email = (String) body.get("email");
+        String name = (String) body.get("name");
+
+        User user = userRepository.findBysocialId(googleId)
+                .orElseGet(() -> userRepository.save(new User(googleId, email, name)));
+
+        return generateToken(user.getUserId());
     }
 
     private String generateToken(Long userId) {

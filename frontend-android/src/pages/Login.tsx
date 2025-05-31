@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, Image } from 'react-native';
 import styled from '@emotion/native';
 import { BASE_URL } from '@env';
 import axios from 'axios';
 import * as Keychain from 'react-native-keychain';
 import { login } from '@react-native-seoul/kakao-login';
+import { useNavigation } from '@react-navigation/native';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 const Logo = styled.Image`
     width: 270px;
@@ -64,8 +66,9 @@ api.interceptors.request.use(async (config) => {
   });
 
 function Login() {
-    const [me, setMe] = useState(null);
-    
+  
+    const navigation = useNavigation();
+  
     const kakaoLogin = async () => {
         try {
           const result = await login();
@@ -77,20 +80,38 @@ function Login() {
     
           const jwt = response.data.token;
           await Keychain.setGenericPassword("jwt", jwt);
+
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Home' as never }],
+          });
+          
         } catch (e) {
           console.error('Kakao login error:', e);
         }
       };
 
-      const getMyInfo = async () => {
+      const googleLogin = async () => {
         try {
-          const response = await api.get("/users/me");
-          setMe(response.data);
+          await GoogleSignin.hasPlayServices();
+          const userInfo = await GoogleSignin.signIn();
+          const googleAccessToken = (await GoogleSignin.getTokens()).accessToken;
+      
+          // 서버로 토큰 보내기
+          const response = await api.post('/auth/google', { googleAccessToken });
+          const jwt = response.data.token;
+      
+          await Keychain.setGenericPassword('jwt', jwt);
+      
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Home' as never }],
+          });
+      
         } catch (e) {
           console.error(e);
         }
       };
-
 
     return (
         <LogoContainer>
@@ -99,7 +120,7 @@ function Login() {
                 <KakaoLoginButton onPress={kakaoLogin}>
                     <KakaoLoginImage source={require('../assets/images/KakaoLogin.png')} />
                 </KakaoLoginButton>
-                <GoogleLoginButton>
+                <GoogleLoginButton onPress={googleLogin}>
                     <GoogleLoginImage source={require('../assets/images/GoogleLogin.png')} />
                 </GoogleLoginButton>
             </LoginButtonContainer>
