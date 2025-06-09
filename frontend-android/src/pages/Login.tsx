@@ -34,7 +34,6 @@ const KakaoLoginButton = styled.TouchableOpacity`
     justify-content: center;
     align-items: center;
     margin-right: 40px;
-    background-image: url(${require('../assets/images/KakaoLogin.png')});
 `
 const GoogleLoginButton = styled.TouchableOpacity`
     width: 70px;
@@ -42,7 +41,6 @@ const GoogleLoginButton = styled.TouchableOpacity`
     border-radius: 10px;
     justify-content: center;
     align-items: center;
-    background-image: url(${require('../assets/images/GoogleLogin.png')});
 `
 const KakaoLoginImage = styled.Image`
     width: 75px;
