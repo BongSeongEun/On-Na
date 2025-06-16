@@ -18,13 +18,14 @@ import java.util.Map;
 @Service
 public class SocialLoginService {
 
-    private final UserRepository userRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${jwt.secret}")
     private String secretKey;
     @Value("${jwt.expiration}")
     private Long expiration;
+
+    private final UserRepository userRepository;
 
     public SocialLoginService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -36,9 +37,10 @@ public class SocialLoginService {
         Map<String, Object> kakaoAccount = (Map) kakaoUser.get("kakao_account");
         String email = (String) kakaoAccount.get("email");
         String nickname = (String) ((Map) kakaoAccount.get("profile")).get("nickname");
+        String password = "1";
 
         User user = userRepository.findBysocialId(kakaoId)
-                .orElseGet(() -> userRepository.save(new User(kakaoId, email, nickname)));
+                .orElseGet(() -> userRepository.save(new User(kakaoId, email, nickname, password)));
 
         return generateToken(user.getUserId());
     }
@@ -69,9 +71,10 @@ public class SocialLoginService {
         String googleId = (String) body.get("sub");
         String email = (String) body.get("email");
         String name = (String) body.get("name");
+        String password = "1";
 
         User user = userRepository.findBysocialId(googleId)
-                .orElseGet(() -> userRepository.save(new User(googleId, email, name)));
+                .orElseGet(() -> userRepository.save(new User(googleId, email, name, password)));
 
         return generateToken(user.getUserId());
     }
