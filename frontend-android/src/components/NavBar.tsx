@@ -1,4 +1,5 @@
 import styled from '@emotion/native';
+import { useNavigation } from '@react-navigation/native';
 
 const MapButton = styled.TouchableOpacity`
     width: 70px;
@@ -78,24 +79,30 @@ const HomeButtonImage = styled.Image`
 `
 
 function NavBar() {
+    const navigation = useNavigation();
+
+    const handlePress = (type: string) => {
+        navigation.navigate(type as never);
+    };
+
     return (
         <ImageBackground source={require('../assets/navBar/plainNavBar.png')}>
             <NavBarContainer style={{paddingLeft: 13}}>
-                <MapButton>
+                <MapButton onPress={() => handlePress('Map_main')}>
                     <MapButtonImage source={require('../assets/navBar/Map.png')} />
                 </MapButton>
-                <CalendarButton>
+                <CalendarButton onPress={() => handlePress('Calendar_main')}>
                     <CalendarButtonImage source={require('../assets/navBar/Calendar.png')} />
                 </CalendarButton>
             </NavBarContainer>
-            <HomeButton>
+            <HomeButton onPress={() => handlePress('Home')}>
                 <HomeButtonImage source={require('../assets/navBar/Home.png')} />
             </HomeButton>
             <NavBarContainer style={{paddingRight: 13}}>
-                <ChatButton>
+                <ChatButton onPress={() => handlePress('Chat_main')}>
                     <ChatButtonImage source={require('../assets/navBar/Chat.png')} />
                 </ChatButton>
-                <ProfileButton>
+                <ProfileButton onPress={() => handlePress('My_page')}>
                     <ProfileButtonImage source={require('../assets/navBar/Chat.png')} />
                 </ProfileButton>
             </NavBarContainer>
