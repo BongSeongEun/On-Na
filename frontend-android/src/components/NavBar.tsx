@@ -40,7 +40,7 @@ const NavBarContainer = styled.View`
     justify-content: space-between;
     align-items: center;
     z-index: 1;
-    margin-top: 10px;
+    margin-top: 16px;
 `
 const ChatButton = styled.TouchableOpacity`
     width: 70px;
