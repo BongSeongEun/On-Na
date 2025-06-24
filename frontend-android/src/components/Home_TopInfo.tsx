@@ -57,7 +57,7 @@ function Home_TopInfo() {
             <MainBackground source={require('../assets/images_home/home_topInfo.png')} resizeMode='contain'>
                 <TopInfoContainer>
                     <NameTextContainer>
-                        <NameText style={{ fontSize: 8, marginTop: 6 }}>내국인 여행 메이트, </NameText>
+                        <NameText style={{ fontSize: 8, marginTop: 2 }}>내국인 여행 메이트, </NameText>
                         <NameText style={{ fontWeight: 'bold' }}>옹비님 </NameText>
                     </NameTextContainer>
                     <DateText>오늘은 2025년 06월 14일 입니다!</DateText>

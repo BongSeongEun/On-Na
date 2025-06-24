@@ -4,6 +4,7 @@ import { Image, ScrollView } from 'react-native';
 import NavBar from '../components/NavBar';
 import Home_TopInfo from '../components/Home_TopInfo';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 const NavContainer = styled.View`
     position: absolute;
@@ -100,45 +101,48 @@ const PlaceTextContainer = styled.View`
     align-items: center;
 `
 function Home() {
+    const navigation = useNavigation();
     return (            
         <SafeAreaView style={{flex: 1}}>
-            <MainContainer>
-                <TopContainer>
-                    <Hamburger>
-                        <Image style={{width: 35, objectFit: 'contain'}} source={require('../assets/images_home/hamburger.png')} />
-                    </Hamburger>
-                    <Image style={{width: 100, objectFit: 'contain', marginRight: 35, marginTop: 20}} source={require('../assets/images_home/logo_home.png')} />
-                </TopContainer>
-                <Home_TopInfo />
-                <CategoryContainer>
-                    <Category style={{ marginLeft: 0 }}></Category>
-                    <Category></Category>
-                    <Category></Category>
-                    <Category></Category>
-                    <Category></Category>
-                </CategoryContainer>
-                <EventContainer>
-                    <EventText>이벤트</EventText>
-                    <Image style={{width: 360, height: 100, objectFit: 'contain', marginTop: 10}} source={require('../assets/images_home/event.png')} />
-                </EventContainer>
-                <MateTextContainer>
-                    <MateText>옹비님과 베스트 메이트가 될 것 같아요!</MateText>
-                    <MateContainer>
-                        <Mate style={{ marginLeft: 0 }}></Mate>
-                        <Mate></Mate>
-                        <Mate></Mate>
-                        <Mate></Mate>
-                    </MateContainer>
-                </MateTextContainer>
-                <PlaceTextContainer>
-                    <PlaceText>6월의 베스트 플레이스</PlaceText>
-                    <PlaceContainer>
-                        <Place style={{ marginLeft: 0 }}></Place>
-                        <Place></Place>
-                        <Place></Place>
-                    </PlaceContainer>
-                </PlaceTextContainer>
-            </MainContainer>
+            <ScrollView>
+                <MainContainer>
+                    <TopContainer>
+                        <Hamburger onPress={() => navigation.navigate('Hamburger' as never)}>
+                            <Image style={{width: 35, objectFit: 'contain'}} source={require('../assets/images_home/hamburger.png')} />
+                        </Hamburger>
+                        <Image style={{width: 100, objectFit: 'contain', marginRight: 35, marginTop: 20}} source={require('../assets/images_home/logo_home.png')} />
+                    </TopContainer>
+                    <Home_TopInfo />
+                    <CategoryContainer>
+                        <Category style={{ marginLeft: 0 }}></Category>
+                        <Category></Category>
+                        <Category></Category>
+                        <Category></Category>
+                        <Category></Category>
+                    </CategoryContainer>
+                    <EventContainer>
+                        <EventText>이벤트</EventText>
+                        <Image style={{width: 360, height: 100, objectFit: 'contain', marginTop: 10}} source={require('../assets/images_home/event.png')} />
+                    </EventContainer>
+                    <MateTextContainer>
+                        <MateText>옹비님과 베스트 메이트가 될 것 같아요!</MateText>
+                        <MateContainer>
+                            <Mate style={{ marginLeft: 0 }}></Mate>
+                            <Mate></Mate>
+                            <Mate></Mate>
+                            <Mate></Mate>
+                        </MateContainer>
+                    </MateTextContainer>
+                    <PlaceTextContainer>
+                        <PlaceText>6월의 베스트 플레이스</PlaceText>
+                        <PlaceContainer>
+                            <Place style={{ marginLeft: 0 }}></Place>
+                            <Place></Place>
+                            <Place></Place>
+                        </PlaceContainer>
+                    </PlaceTextContainer>
+                </MainContainer>
+            </ScrollView>
             <NavContainer style={{ marginBottom: 'auto' }}>
                 <NavBar />
             </NavContainer>
