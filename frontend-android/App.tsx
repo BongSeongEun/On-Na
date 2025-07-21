@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from 'react-native-splash-screen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import Login1 from './src/pages/Login1';
+import Login from './src/pages/Login1';
 import Home from './src/pages/Home';
 import Calendar_main from './src/pages/Calendar_main';
 import Map_main from './src/pages/Map_main';
@@ -30,7 +30,7 @@ function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="Login">
-          <Stack.Screen name="Login" component={Login1} options={{headerShown: false}} />
+          <Stack.Screen name="Login" component={Login} options={{headerShown: false}} />
           <Stack.Screen name="Home" component={Home} options={{headerShown: false}} />
           <Stack.Screen name="Calendar_main" component={Calendar_main} options={{headerShown: false}} />
           <Stack.Screen name="Map_main" component={Map_main} options={{headerShown: false}} />

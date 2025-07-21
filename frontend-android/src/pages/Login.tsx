@@ -116,10 +116,10 @@ function Login() {
             <Logo source={require('../assets/images/Logo.png')} />
             <LoginButtonContainer>
                 <KakaoLoginButton onPress={kakaoLogin}>
-                    <KakaoLoginImage source={require('../assets/images/KakaoLogin.png')} />
+                    <KakaoLoginImage source={require('../assets/images_login/KakaoLogin.png')} />
                 </KakaoLoginButton>
                 <GoogleLoginButton onPress={googleLogin}>
-                    <GoogleLoginImage source={require('../assets/images/GoogleLogin.png')} />
+                    <GoogleLoginImage source={require('../assets/images_login/GoogleLogin.png')} />
                 </GoogleLoginButton>
             </LoginButtonContainer>
         </LogoContainer>

@@ -31,7 +31,7 @@ const Input = styled.TextInput`
   border-radius: 31px;
   margin-bottom: 16px;
   padding: 0 20px;
-  font-size: 16px;
+  font-size: 12px;
 `;
 const Label = styled.Text`
   font-size: 12px;
@@ -54,15 +54,13 @@ const LoginButtonText = styled.Text`
   font-weight: bold;
 `;
 const SocialContainer = styled.View`
-  flex-direction: row;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   margin-top: 24px;
 `;
 const SocialButton = styled.TouchableOpacity`
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
+  width: 200px;
   margin: 0 12px;
   align-items: center;
   justify-content: center;
@@ -70,8 +68,8 @@ const SocialButton = styled.TouchableOpacity`
   elevation: 2;
 `;
 const SocialIcon = styled.Image`
-  width: 40px;
-  height: 40px;
+  height: 50px;
+  resizeMode: contain;
 `;
 const LinkContainer = styled.View`
   flex-direction: row;
@@ -159,30 +157,20 @@ function Login1() {
       <Container>
         <Logo source={require('../assets/images/Logo.png')} />
         <Input
-          placeholder="아이디를 입력하세요"
+          placeholder="아이디"
           value={id}
           onChangeText={setId}
           autoCapitalize="none"
         />
         <Input
-          placeholder="비밀번호를 입력하세요"
+          placeholder="비밀번호"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
-        <LoginButton onPress={handleLogin}>
-          <LoginButtonText>로그인</LoginButtonText>
-        </LoginButton>
-        <SocialContainer>
-          <SocialButton onPress={handleKakaoLogin}>
-            <SocialIcon source={require('../assets/images_login/KakaoLogin.png')} />
-          </SocialButton>
-          <Text style={{marginHorizontal: 8, fontSize: 12}}>카카오톡으로 로그인</Text>
-          <SocialButton onPress={handleGoogleLogin}>
-            <SocialIcon source={require('../assets/images_login/GoogleLogin.png')} />
-          </SocialButton>
-          <Text style={{marginHorizontal: 8, fontSize: 12}}>Google 계정으로 로그인</Text>
-        </SocialContainer>
+        <SocialButton onPress={handleLogin} style={{marginTop: 10}}>
+            <SocialIcon source={require('../assets/images_login/Login.png')} />
+        </SocialButton>
         <LinkContainer>
           <TouchableOpacity onPress={() => {}}>
             <LinkText>{'> 회원가입'}</LinkText>
@@ -191,6 +179,14 @@ function Login1() {
             <LinkText>{'> 아이디/비밀번호 찾기'}</LinkText>
           </TouchableOpacity>
         </LinkContainer>
+        <SocialContainer>
+          <SocialButton onPress={handleKakaoLogin}>
+            <SocialIcon source={require('../assets/images_login/KakaoLogin.png')} />
+          </SocialButton>
+          <SocialButton onPress={handleGoogleLogin} style={{marginTop: 10}}>
+            <SocialIcon source={require('../assets/images_login/GoogleLogin.png')} />
+          </SocialButton>
+        </SocialContainer>
       </Container>
     </Background>
   );
