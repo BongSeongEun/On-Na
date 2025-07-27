@@ -99,7 +99,7 @@ function NavBar() {
                 <HomeButtonImage source={require('../assets/navBar/Home.png')} />
             </HomeButton>
             <NavBarContainer style={{paddingRight: 13}}>
-                <ChatButton onPress={() => handlePress('Chat_main')}>
+                <ChatButton onPress={() => handlePress('Chat_list')}>
                     <ChatButtonImage source={require('../assets/navBar/Chat.png')} />
                 </ChatButton>
                 <ProfileButton onPress={() => handlePress('My_page')}>

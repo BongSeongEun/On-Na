@@ -4,15 +4,16 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from 'react-native-splash-screen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import Login from './src/pages/Login1';
+import Login from './src/pages/Login';
 import Home from './src/pages/Home';
 import Calendar_main from './src/pages/Calendar_main';
 import Map_main from './src/pages/Map_main';
-import Chat_main from './src/pages/Chat_main';
+import Chat_main from './src/pages/Chat_list';
 import My_page from './src/pages/My_page';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Hamburger from './src/pages/Hamburger';
-
+import Chatting from './src/pages/Chatting';
+import Chat_list from './src/pages/Chat_list';
 const Stack = createNativeStackNavigator();
 
 function App() {
@@ -37,6 +38,8 @@ function App() {
           <Stack.Screen name="Chat_main" component={Chat_main} options={{headerShown: false}} />
           <Stack.Screen name="My_page" component={My_page} options={{headerShown: false}} />
           <Stack.Screen name="Hamburger" component={Hamburger} options={{headerShown: false, animation: 'slide_from_left'}} />
+          <Stack.Screen name="Chatting" component={Chatting} options={{headerShown: false}} />
+          <Stack.Screen name="Chat_list" component={Chat_list} options={{headerShown: false}} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
