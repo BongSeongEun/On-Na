@@ -1,97 +1,201 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# On-Na Frontend Android
 
-# Getting Started
+React Native를 사용한 모바일 애플리케이션입니다.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🚀 시작하기
 
-## Step 1: Start Metro
+### 필수 요구사항
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+- Node.js 18 이상
+- React Native CLI
+- Android Studio (Android 개발용)
+- Xcode (iOS 개발용, macOS만)
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### 설치 및 실행
 
-```sh
-# Using npm
-npm start
+```bash
+# 의존성 설치
+npm install
 
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+# Android 실행
 npm run android
 
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+# iOS 실행
 npm run ios
 
-# OR using Yarn
-yarn ios
+# Metro 서버 시작
+npm start
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## 💬 WebSocket 채팅 기능
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+이 프로젝트는 WebSocket을 사용한 실시간 채팅 기능을 포함하고 있습니다.
 
-## Step 3: Modify your app
+### 주요 기능
 
-Now that you have successfully run the app, let's make changes!
+- **실시간 메시지 전송/수신**: WebSocket을 통한 양방향 실시간 통신
+- **채팅방 관리**: 채팅방 목록 조회, 입장/퇴장
+- **자동 재연결**: 네트워크 연결 끊김 시 자동 재연결
+- **JWT 인증**: 보안을 위한 JWT 토큰 기반 인증
+- **에러 처리**: 연결 실패, 토큰 만료 등의 에러 처리
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### 사용법
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+#### 1. WebSocket Container 사용
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+```typescript
+import webSocketContainer from './src/utils/WebSocketContainer';
 
-## Congratulations! :tada:
+// JWT 토큰 설정
+webSocketContainer.setAccessToken('your-jwt-token');
 
-You've successfully run and modified your React Native App. :partying_face:
+// WebSocket 연결
+await webSocketContainer.connect();
 
-### Now what?
+// 메시지 전송
+await webSocketContainer.sendMessage('roomId', 'Hello World');
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+// 채팅방 입장
+await webSocketContainer.joinRoom('roomId');
 
-# Troubleshooting
+// 연결 해제
+webSocketContainer.disconnect();
+```
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+#### 2. useWebSocket 훅 사용
 
-# Learn More
+```typescript
+import useWebSocket from './src/utils/useWebSocket';
 
-To learn more about React Native, take a look at the following resources:
+const MyComponent = () => {
+  const {
+    isConnected,
+    messages,
+    rooms,
+    sendMessage,
+    joinRoom,
+    leaveRoom,
+    connect,
+    disconnect,
+    error
+  } = useWebSocket('your-jwt-token');
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+  useEffect(() => {
+    // WebSocket 연결
+    connect();
+  }, []);
+
+  const handleSendMessage = async () => {
+    await sendMessage('roomId', 'Hello World');
+  };
+
+  return (
+    <View>
+      <Text>연결 상태: {isConnected ? '연결됨' : '연결 안됨'}</Text>
+      {error && <Text>에러: {error}</Text>}
+    </View>
+  );
+};
+```
+
+#### 3. 채팅 컴포넌트 사용
+
+```typescript
+import ChatRoomList from './src/components/ChatRoomList';
+import ChatRoom from './src/components/ChatRoom';
+
+// 채팅방 목록
+<ChatRoomList 
+  accessToken="your-jwt-token"
+  onRoomSelect={(roomId, roomName) => {
+    // 채팅방 선택 처리
+  }}
+/>
+
+// 채팅방
+<ChatRoom
+  roomId="room-id"
+  roomName="채팅방 이름"
+  accessToken="your-jwt-token"
+  onBack={() => {
+    // 뒤로가기 처리
+  }}
+/>
+```
+
+### 백엔드 설정
+
+백엔드에서는 Spring Boot와 STOMP를 사용하여 WebSocket 서버를 구현했습니다.
+
+#### 주요 엔드포인트
+
+- **WebSocket 연결**: `/ws`
+- **메시지 전송**: `/app/chat/message`
+- **채팅방 입장**: `/app/chat/join`
+- **채팅방 퇴장**: `/app/chat/leave`
+- **채팅방 목록 요청**: `/app/chat/rooms`
+
+#### 구독 토픽
+
+- **개인 메시지**: `/user/queue/messages`
+- **채팅방 목록**: `/user/queue/rooms`
+- **채팅방 메시지**: `/topic/chat/room`
+
+### 환경 설정
+
+`src/utils/config.ts` 파일에서 WebSocket 서버 URL과 기타 설정을 변경할 수 있습니다.
+
+```typescript
+export const WEBSOCKET_CONFIG = {
+  DEV: {
+    WS_URL: 'ws://localhost:8080/ws',
+    API_URL: 'http://localhost:8080/api',
+  },
+  // 다른 환경 설정...
+};
+```
+
+### 보안 고려사항
+
+1. **JWT 토큰 관리**: 토큰 만료 시 자동 갱신 로직 구현 필요
+2. **CORS 설정**: 프로덕션 환경에서는 특정 도메인으로 제한
+3. **SSL/TLS**: 프로덕션 환경에서는 WSS(WebSocket Secure) 사용
+4. **인증 검증**: 서버에서 JWT 토큰 유효성 검증 필요
+
+## 📁 프로젝트 구조
+
+```
+src/
+├── components/          # 재사용 가능한 컴포넌트
+│   ├── ChatRoom.tsx    # 채팅방 컴포넌트
+│   └── ChatRoomList.tsx # 채팅방 목록 컴포넌트
+├── pages/              # 페이지 컴포넌트
+│   └── ChatPage.tsx    # 채팅 페이지
+├── utils/              # 유틸리티 함수
+│   ├── WebSocketContainer.ts # WebSocket 관리
+│   ├── useWebSocket.ts # WebSocket 훅
+│   └── config.ts       # 설정 파일
+└── types/              # TypeScript 타입 정의
+```
+
+## 🔧 개발 가이드
+
+### 새로운 채팅 기능 추가
+
+1. `WebSocketContainer.ts`에 새로운 메서드 추가
+2. `useWebSocket.ts`에 해당 기능을 훅으로 노출
+3. 필요한 컴포넌트에서 훅 사용
+
+### 에러 처리
+
+WebSocket 연결 실패, 메시지 전송 실패 등의 에러는 자동으로 처리되며, 사용자에게 적절한 알림이 표시됩니다.
+
+### 성능 최적화
+
+- 메시지 중복 방지
+- 자동 스크롤 최적화
+- 메모리 누수 방지를 위한 이벤트 리스너 정리
+
+## 📝 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.

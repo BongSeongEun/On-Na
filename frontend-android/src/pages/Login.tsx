@@ -83,7 +83,7 @@ const LinkText = styled.Text`
 `;
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: `http://10.140.238.23:8080`,
 });
 
 api.interceptors.request.use(async (config) => {
@@ -115,6 +115,7 @@ function Login() {
         routes: [{ name: 'Home' as never }],
       });
     } catch (e: any) {
+      console.log(e);
       Alert.alert('아이디 또는 비밀번호를 확인하세요.');
     }
   };
