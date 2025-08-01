@@ -63,11 +63,15 @@ const UnreadBadge = styled.View`
   border-radius: 10px;
   padding: 2px 8px;
   margin-top: 6px;
+  min-width: 20px;
+  justify-content: center;
+  align-items: center;
 `;
 
 const UnreadText = styled.Text`
   color: #fff;
   font-size: 11px;
+  font-weight: bold;
 `;
 
 const NavContainer = styled.View`
@@ -118,6 +122,8 @@ function ChatList() {
     error,
     addRoomHandler,
     removeRoomHandler,
+    addNotificationHandler,
+    removeNotificationHandler,
   } = useWebSocket(accessToken);
 
   useEffect(() => {
@@ -186,7 +192,16 @@ function ChatList() {
   // WebSocket 채팅방 목록 업데이트
   useEffect(() => {
     const roomHandler = (updatedRooms: any[]) => {
-      setRooms(updatedRooms);
+      setRooms(prevRooms => {
+        // 기존 방들의 안읽음 카운트 유지하면서 업데이트
+        return updatedRooms.map(newRoom => {
+          const existingRoom = prevRooms.find(room => room.id === newRoom.id);
+          return {
+            ...newRoom,
+            unreadCount: existingRoom ? existingRoom.unreadCount : newRoom.unreadCount || 0
+          };
+        });
+      });
     };
 
     addRoomHandler('chatList', roomHandler);
@@ -196,6 +211,36 @@ function ChatList() {
     };
   }, [addRoomHandler, removeRoomHandler]);
 
+  // 실시간 알림 처리
+  useEffect(() => {
+    const notificationHandler = (notification: any) => {
+      console.log('새 알림 수신:', notification);
+      
+      // 채팅방 목록 업데이트
+      if (notification.type === 'NEW_MESSAGE') {
+        setRooms(prevRooms => {
+          return prevRooms.map(room => {
+            if (room.id === notification.roomId) {
+              return {
+                ...room,
+                lastMessage: notification.message,
+                lastMessageTime: notification.timestamp,
+                unreadCount: room.unreadCount + 1
+              };
+            }
+            return room;
+          });
+        });
+      }
+    };
+
+    addNotificationHandler('chatList', notificationHandler);
+
+    return () => {
+      removeNotificationHandler('chatList');
+    };
+  }, [addNotificationHandler, removeNotificationHandler]);
+
   // 에러 처리
   useEffect(() => {
     if (error) {
@@ -204,6 +249,13 @@ function ChatList() {
   }, [error]);
 
   const goToChat = (room: any) => {
+    // 채팅방 입장 시 안읽음 카운트 초기화
+    setRooms(prevRooms => 
+      prevRooms.map(r => 
+        r.id === room.id ? { ...r, unreadCount: 0 } : r
+      )
+    );
+    
     navigation.navigate('Chatting', { 
       chatRoomId: room.id, 
       roomName: room.name, 
@@ -230,7 +282,9 @@ function ChatList() {
       </RoomAvatar>
       <RoomInfo>
         <RoomName numberOfLines={1}>{item.name}</RoomName>
-        <LastMessage numberOfLines={1}>{item.lastMessage}</LastMessage>
+        <LastMessage numberOfLines={1}>
+          {item.lastMessage || '메시지가 없습니다.'}
+        </LastMessage>
       </RoomInfo>
       <TimeUnreadRow>
         <LastTime>{formatTime(item.lastMessageTime)}</LastTime>

@@ -106,6 +106,30 @@ public class ChatService {
         }
     }
 
+    // 채팅방 참여자 추가 (새로운 메서드)
+    public void addRoomParticipant(String roomId, String userId) {
+        log.info("Adding participant {} to room {}", userId, roomId);
+        roomParticipants.computeIfAbsent(roomId, k -> ConcurrentHashMap.newKeySet()).add(userId);
+    }
+
+    // 채팅방 참여자 제거 (새로운 메서드)
+    public void removeRoomParticipant(String roomId, String userId) {
+        log.info("Removing participant {} from room {}", userId, roomId);
+        Set<String> participants = roomParticipants.get(roomId);
+        if (participants != null) {
+            participants.remove(userId);
+        }
+    }
+
+    // 채팅방 참여자 목록 조회 (새로운 메서드)
+    public List<String> getRoomParticipants(String roomId) {
+        Set<String> participants = roomParticipants.get(roomId);
+        if (participants != null) {
+            return new ArrayList<>(participants);
+        }
+        return new ArrayList<>();
+    }
+
     // 사용자의 채팅방 목록 조회 (데이터베이스에서)
     public List<ChatRoomDto> getUserRooms(String userId) {
         log.info("Getting rooms for user: {}", userId);

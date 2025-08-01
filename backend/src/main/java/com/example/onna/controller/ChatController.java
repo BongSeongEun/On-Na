@@ -24,6 +24,20 @@ public class ChatController {
     private final ChatService chatService;
     private final SimpMessagingTemplate messagingTemplate;
 
+    // 하트비트 처리
+    @MessageMapping("/heartbeat")
+    public void handleHeartbeat(SimpMessageHeaderAccessor headerAccessor) {
+        log.info("=== 하트비트 수신 ===");
+        log.info("Session ID: {}", headerAccessor.getSessionId());
+        log.info("User: {}", headerAccessor.getUser());
+        
+        // 하트비트 응답 전송
+        String sessionId = headerAccessor.getSessionId();
+        if (sessionId != null) {
+            messagingTemplate.convertAndSendToUser(sessionId, "/queue/heartbeat", "pong");
+        }
+    }
+
     // 메시지 전송 처리
     @MessageMapping("/chat/message")
     @SendTo("/topic/chat/room")
@@ -55,70 +69,101 @@ public class ChatController {
         log.info("Sending message to: {}", destination);
         messagingTemplate.convertAndSend(destination, savedMessage);
         
+        // 안읽음 메시지 알림 전송
+        sendUnreadNotification(chatMessage);
+        
         return savedMessage;
     }
 
     // 채팅방 입장
     @MessageMapping("/chat/join")
     public void handleJoinRoom(@Payload String roomId, SimpMessageHeaderAccessor headerAccessor) {
-        log.info("User joining room: {}", roomId);
+        log.info("=== 채팅방 입장 ===");
+        log.info("Room ID: {}", roomId);
+        log.info("Session ID: {}", headerAccessor.getSessionId());
+        log.info("User: {}", headerAccessor.getUser());
         
-        String sessionId = headerAccessor.getSessionId();
         String userId = getUserIdFromHeader(headerAccessor);
         
-        // 사용자를 채팅방에 추가
-        chatService.addUserToRoom(roomId, userId, sessionId);
+        // 채팅방 참여자 목록에 추가
+        chatService.addRoomParticipant(roomId, userId);
         
-        // 채팅방 참여자들에게 입장 알림
-        ChatMessageDto joinMessage = new ChatMessageDto();
-        joinMessage.setId(UUID.randomUUID().toString());
-        joinMessage.setRoomId(roomId);
-        joinMessage.setSenderId("SYSTEM");
-        joinMessage.setContent(userId + "님이 입장하셨습니다.");
-        joinMessage.setTimestamp(LocalDateTime.now());
-        joinMessage.setType(ChatMessageDto.MessageType.TEXT);
-        
-        messagingTemplate.convertAndSend("/topic/chat/room/" + roomId, joinMessage);
+        // 개인 구독 설정
+        String sessionId = headerAccessor.getSessionId();
+        if (sessionId != null) {
+            messagingTemplate.convertAndSendToUser(sessionId, "/queue/joined", roomId);
+        }
     }
 
     // 채팅방 퇴장
     @MessageMapping("/chat/leave")
     public void handleLeaveRoom(@Payload String roomId, SimpMessageHeaderAccessor headerAccessor) {
-        log.info("User leaving room: {}", roomId);
+        log.info("=== 채팅방 퇴장 ===");
+        log.info("Room ID: {}", roomId);
+        log.info("Session ID: {}", headerAccessor.getSessionId());
         
-        String sessionId = headerAccessor.getSessionId();
         String userId = getUserIdFromHeader(headerAccessor);
         
-        // 사용자를 채팅방에서 제거
-        chatService.removeUserFromRoom(roomId, userId, sessionId);
+        // 채팅방 참여자 목록에서 제거
+        chatService.removeRoomParticipant(roomId, userId);
         
-        // 채팅방 참여자들에게 퇴장 알림
-        ChatMessageDto leaveMessage = new ChatMessageDto();
-        leaveMessage.setId(UUID.randomUUID().toString());
-        leaveMessage.setRoomId(roomId);
-        leaveMessage.setSenderId("SYSTEM");
-        leaveMessage.setContent(userId + "님이 퇴장하셨습니다.");
-        leaveMessage.setTimestamp(LocalDateTime.now());
-        leaveMessage.setType(ChatMessageDto.MessageType.TEXT);
-        
-        messagingTemplate.convertAndSend("/topic/chat/room/" + roomId, leaveMessage);
+        // 개인 구독 해제
+        String sessionId = headerAccessor.getSessionId();
+        if (sessionId != null) {
+            messagingTemplate.convertAndSendToUser(sessionId, "/queue/left", roomId);
+        }
     }
 
     // 채팅방 목록 요청
     @MessageMapping("/chat/rooms")
-    public void handleRequestRooms(SimpMessageHeaderAccessor headerAccessor) {
+    public void handleRoomListRequest(SimpMessageHeaderAccessor headerAccessor) {
+        log.info("=== 채팅방 목록 요청 ===");
+        log.info("Session ID: {}", headerAccessor.getSessionId());
+        log.info("User: {}", headerAccessor.getUser());
+        
         String userId = getUserIdFromHeader(headerAccessor);
-        log.info("User requesting rooms: {}", userId);
         
-        // 사용자의 채팅방 목록 조회
-        List<ChatRoomDto> rooms = chatService.getUserRooms(userId);
-        
-        // 개인 메시지로 채팅방 목록 전송
-        messagingTemplate.convertAndSendToUser(
-            headerAccessor.getSessionId(),
-            "/queue/rooms",
-            rooms
-        );
+        if (userId != null) {
+            List<ChatRoomDto> rooms = chatService.getUserRooms(userId);
+            
+            // 개인에게 채팅방 목록 전송
+            String sessionId = headerAccessor.getSessionId();
+            if (sessionId != null) {
+                messagingTemplate.convertAndSendToUser(sessionId, "/queue/rooms", rooms);
+            }
+        }
+    }
+
+    // 안읽음 메시지 알림 전송
+    private void sendUnreadNotification(ChatMessageDto message) {
+        try {
+            // 채팅방 참여자들에게 안읽음 알림 전송
+            List<String> participants = chatService.getRoomParticipants(message.getRoomId());
+            
+            for (String participantId : participants) {
+                if (!participantId.equals(message.getSenderId())) {
+                    // 개인에게 안읽음 알림 전송
+                    messagingTemplate.convertAndSendToUser(
+                        participantId, 
+                        "/queue/notifications", 
+                        createNotification(message)
+                    );
+                }
+            }
+        } catch (Exception e) {
+            log.error("알림 전송 실패: {}", e.getMessage());
+        }
+    }
+
+    // 알림 객체 생성
+    private Object createNotification(ChatMessageDto message) {
+        return new Object() {
+            public final String type = "NEW_MESSAGE";
+            public final String roomId = message.getRoomId();
+            public final String message = message.getContent();
+            public final String timestamp = message.getTimestamp().toString();
+            public final String senderId = message.getSenderId();
+        };
     }
 
     // 헤더에서 사용자 ID 추출 (JWT 토큰에서 추출)

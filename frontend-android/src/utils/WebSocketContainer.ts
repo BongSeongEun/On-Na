@@ -10,6 +10,7 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   type: 'TEXT' | 'IMAGE' | 'FILE';
+  imageUrl?: string; // 이미지 URL 추가
 }
 
 export interface ChatRoom {
@@ -31,10 +32,12 @@ class WebSocketContainer {
   private stompClient: any = null;
   private isConnected: boolean = false;
   private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
-  private reconnectInterval: number = 3000;
+  private maxReconnectAttempts: number = 10; // 재연결 시도 횟수 증가
+  private reconnectInterval: number = 2000; // 재연결 간격 단축
   private eventListeners: Map<string, Function[]> = new Map();
   private accessToken: string | null = null;
+  private connectionTimeout: NodeJS.Timeout | null = null;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
 
   // WebSocket 서버 URL (설정 파일에서 가져옴)
   private readonly WS_URL = getWebSocketUrl();
@@ -94,10 +97,10 @@ class WebSocketContainer {
         console.log('WebSocket URL:', this.WS_URL);
         console.log('Access Token:', this.accessToken ? '있음' : '없음');
         
-        // SockJS 옵션 설정
+        // SockJS 옵션 설정 - 타임아웃 증가
         const sockjsOptions = {
           transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
-          timeout: 10000,
+          timeout: 30000, // 30초로 증가
         };
         
         console.log('SockJS 옵션:', sockjsOptions);
@@ -112,6 +115,8 @@ class WebSocketContainer {
         
         socket.onclose = (event) => {
           console.log('=== SockJS 연결 종료 ===', event);
+          this.isConnected = false;
+          this.emit('DISCONNECTED');
         };
         
         socket.onerror = (error) => {
@@ -121,13 +126,13 @@ class WebSocketContainer {
         this.stompClient = Stomp.over(socket);
         console.log('STOMP 클라이언트 생성됨');
 
-        // 연결 타임아웃 설정 (30초로 증가)
-        const connectionTimeout = setTimeout(() => {
+        // 연결 타임아웃 설정 (60초로 증가)
+        this.connectionTimeout = setTimeout(() => {
           console.error('=== WebSocket 연결 타임아웃 ===');
           this.isConnected = false;
           this.emit('ERROR', { message: 'WebSocket 연결 타임아웃', error: new Error('Connection timeout') });
           reject(new Error('Connection timeout'));
-        }, 30000); // 30초 타임아웃
+        }, 60000); // 60초 타임아웃
         
         // STOMP 연결 설정 - JWT 토큰을 헤더에 추가
         const connectHeaders: any = {
@@ -145,11 +150,15 @@ class WebSocketContainer {
           connectHeaders,
           () => {
             console.log('=== WebSocket 연결 성공 ===');
-            clearTimeout(connectionTimeout);
+            if (this.connectionTimeout) {
+              clearTimeout(this.connectionTimeout);
+              this.connectionTimeout = null;
+            }
             this.isConnected = true;
             this.reconnectAttempts = 0;
             this.emit('CONNECTED');
             this.setupSubscriptions();
+            this.startHeartbeat();
             resolve(true);
           },
           (error: any) => {
@@ -157,7 +166,10 @@ class WebSocketContainer {
             console.error('Error details:', error);
             console.error('Error message:', error.message);
             console.error('Error stack:', error.stack);
-            clearTimeout(connectionTimeout);
+            if (this.connectionTimeout) {
+              clearTimeout(this.connectionTimeout);
+              this.connectionTimeout = null;
+            }
             this.isConnected = false;
             this.emit('ERROR', { message: 'WebSocket 연결 실패', error });
             reject(error);
@@ -171,6 +183,24 @@ class WebSocketContainer {
         reject(error);
       }
     });
+  }
+
+  // 하트비트 시작
+  private startHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+    
+    this.heartbeatInterval = setInterval(() => {
+      if (this.isConnected && this.stompClient) {
+        try {
+          // 빈 메시지로 하트비트 전송
+          this.stompClient.send('/app/heartbeat', {}, '');
+        } catch (error) {
+          console.error('Heartbeat error:', error);
+        }
+      }
+    }, 25000); // 25초마다 하트비트
   }
 
   // 구독 설정
@@ -206,10 +236,20 @@ class WebSocketContainer {
         this.emit('ERROR', { message: '채팅방 메시지 파싱 실패', error });
       }
     });
+
+    // 안읽음 메시지 알림 구독
+    this.stompClient.subscribe('/user/queue/notifications', (message: any) => {
+      try {
+        const data = JSON.parse(message.body);
+        this.emit('NOTIFICATION', data);
+      } catch (error) {
+        this.emit('ERROR', { message: '알림 파싱 실패', error });
+      }
+    });
   }
 
-  // 메시지 전송
-  public async sendMessage(roomId: string, content: string, type: 'TEXT' | 'IMAGE' | 'FILE' = 'TEXT'): Promise<boolean> {
+  // 메시지 전송 (이미지 지원 추가)
+  public async sendMessage(roomId: string, content: string, type: 'TEXT' | 'IMAGE' | 'FILE' = 'TEXT', imageUrl?: string): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
       if (!this.isConnected || !this.stompClient) {
         reject(new Error('WebSocket이 연결되지 않았습니다.'));
@@ -225,7 +265,8 @@ class WebSocketContainer {
           content,
           type,
           senderId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          imageUrl: type === 'IMAGE' ? imageUrl : undefined
         };
 
         console.log('Sending message:', message);
@@ -237,6 +278,11 @@ class WebSocketContainer {
         reject(error);
       }
     });
+  }
+
+  // 이미지 전송
+  public async sendImage(roomId: string, imageUrl: string): Promise<boolean> {
+    return this.sendMessage(roomId, '이미지를 전송했습니다.', 'IMAGE', imageUrl);
   }
 
   // 사용자 세션 조회
@@ -318,6 +364,16 @@ class WebSocketContainer {
 
   // 연결 해제
   public disconnect(): void {
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+    
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    
     if (this.stompClient) {
       this.stompClient.disconnect();
     }
@@ -344,10 +400,13 @@ class WebSocketContainer {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       setTimeout(() => {
         this.reconnectAttempts++;
+        console.log(`재연결 시도 ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         this.connect().catch(() => {
           // 재연결 실패 시 추가 처리
         });
       }, this.reconnectInterval);
+    } else {
+      console.log('최대 재연결 시도 횟수 초과');
     }
   }
 

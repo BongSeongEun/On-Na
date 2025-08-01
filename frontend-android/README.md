@@ -1,201 +1,158 @@
-# On-Na Frontend Android
+# On-Na 채팅 앱
 
-React Native를 사용한 모바일 애플리케이션입니다.
+카카오톡과 같은 실시간 채팅 기능을 제공하는 React Native 앱입니다.
 
-## 🚀 시작하기
+## 주요 기능
 
-### 필수 요구사항
+### 🚀 실시간 채팅
+- **WebSocket 기반 실시간 메시지 전송**
+- **자동 재연결 기능** - 연결이 끊어져도 자동으로 재연결
+- **하트비트 시스템** - 연결 상태를 지속적으로 모니터링
+- **연결 상태 표시** - 실시간으로 연결 상태를 확인
 
-- Node.js 18 이상
-- React Native CLI
-- Android Studio (Android 개발용)
-- Xcode (iOS 개발용, macOS만)
+### 💬 메시지 기능
+- **텍스트 메시지 전송** - 일반 텍스트 메시지 전송
+- **이미지 전송** - 갤러리에서 이미지 선택하여 전송
+- **메시지 타임스탬프** - 각 메시지의 전송 시간 표시
+- **메시지 구분** - 내 메시지와 상대방 메시지를 시각적으로 구분
 
-### 설치 및 실행
+### 📱 채팅방 관리
+- **채팅방 목록** - 사용자가 속한 모든 채팅방 표시
+- **안읽음 메시지 카운트** - 읽지 않은 메시지 개수를 실시간으로 표시
+- **마지막 메시지 미리보기** - 채팅방 목록에서 마지막 메시지 내용 표시
+- **실시간 업데이트** - 새 메시지가 오면 채팅방 목록이 자동으로 업데이트
 
+### 🔔 알림 시스템
+- **실시간 알림** - 채팅방에 있지 않아도 새 메시지 알림
+- **안읽음 상태 관리** - 채팅방 입장 시 안읽음 카운트 자동 초기화
+- **푸시 알림 지원** - 백그라운드에서도 메시지 알림 수신
+
+## 기술 스택
+
+### Frontend (React Native)
+- **React Native 0.79.2** - 크로스 플랫폼 모바일 앱 개발
+- **TypeScript** - 타입 안전성 보장
+- **WebSocket (STOMP)** - 실시간 양방향 통신
+- **Axios** - HTTP API 통신
+- **React Navigation** - 화면 네비게이션
+- **Emotion** - 스타일링
+- **React Native Image Picker** - 이미지 선택 기능
+
+### Backend (Spring Boot)
+- **Spring Boot** - 서버 프레임워크
+- **Spring WebSocket** - WebSocket 지원
+- **STOMP** - 메시징 프로토콜
+- **JWT** - 인증 토큰
+- **JPA/Hibernate** - 데이터베이스 ORM
+- **MySQL** - 데이터베이스
+
+## 설치 및 실행
+
+### Frontend 설정
+
+1. **의존성 설치**
 ```bash
-# 의존성 설치
+cd frontend-android
 npm install
+```
 
-# Android 실행
+2. **Android 권한 설정**
+- `android/app/src/main/AndroidManifest.xml`에 이미지 접근 권한이 추가되어 있습니다.
+
+3. **앱 실행**
+```bash
+# Android
 npm run android
 
-# iOS 실행
+# iOS
 npm run ios
-
-# Metro 서버 시작
-npm start
 ```
 
-## 💬 WebSocket 채팅 기능
+### Backend 설정
 
-이 프로젝트는 WebSocket을 사용한 실시간 채팅 기능을 포함하고 있습니다.
-
-### 주요 기능
-
-- **실시간 메시지 전송/수신**: WebSocket을 통한 양방향 실시간 통신
-- **채팅방 관리**: 채팅방 목록 조회, 입장/퇴장
-- **자동 재연결**: 네트워크 연결 끊김 시 자동 재연결
-- **JWT 인증**: 보안을 위한 JWT 토큰 기반 인증
-- **에러 처리**: 연결 실패, 토큰 만료 등의 에러 처리
-
-### 사용법
-
-#### 1. WebSocket Container 사용
-
-```typescript
-import webSocketContainer from './src/utils/WebSocketContainer';
-
-// JWT 토큰 설정
-webSocketContainer.setAccessToken('your-jwt-token');
-
-// WebSocket 연결
-await webSocketContainer.connect();
-
-// 메시지 전송
-await webSocketContainer.sendMessage('roomId', 'Hello World');
-
-// 채팅방 입장
-await webSocketContainer.joinRoom('roomId');
-
-// 연결 해제
-webSocketContainer.disconnect();
+1. **서버 실행**
+```bash
+cd backend
+./gradlew bootRun
 ```
 
-#### 2. useWebSocket 훅 사용
+2. **데이터베이스 설정**
+- MySQL 데이터베이스가 필요합니다.
+- `application.yml`에서 데이터베이스 연결 정보를 설정하세요.
 
+## 주요 컴포넌트
+
+### WebSocket 연결 관리
+- `WebSocketContainer.ts` - WebSocket 연결 및 메시지 처리
+- `useWebSocket.ts` - React Hook으로 WebSocket 기능 제공
+
+### 채팅 화면
+- `Chatting.tsx` - 실시간 채팅 화면
+- `Chat_list.tsx` - 채팅방 목록 화면
+
+### 백엔드 API
+- `ChatController.java` - WebSocket 메시지 처리
+- `ChatService.java` - 비즈니스 로직 처리
+- `WebSocketConfig.java` - WebSocket 설정
+
+## 기능 상세 설명
+
+### 실시간 연결 관리
 ```typescript
-import useWebSocket from './src/utils/useWebSocket';
+// WebSocket 연결 상태 모니터링
+const { isConnected, connect, disconnect } = useWebSocket(accessToken);
 
-const MyComponent = () => {
-  const {
-    isConnected,
-    messages,
-    rooms,
-    sendMessage,
-    joinRoom,
-    leaveRoom,
-    connect,
-    disconnect,
-    error
-  } = useWebSocket('your-jwt-token');
-
-  useEffect(() => {
-    // WebSocket 연결
+// 자동 재연결
+useEffect(() => {
+  if (!isConnected) {
     connect();
-  }, []);
+  }
+}, [isConnected]);
+```
 
-  const handleSendMessage = async () => {
-    await sendMessage('roomId', 'Hello World');
-  };
+### 메시지 전송
+```typescript
+// 텍스트 메시지 전송
+await sendMessage(roomId, "안녕하세요!");
 
-  return (
-    <View>
-      <Text>연결 상태: {isConnected ? '연결됨' : '연결 안됨'}</Text>
-      {error && <Text>에러: {error}</Text>}
-    </View>
-  );
+// 이미지 전송
+await sendImage(roomId, imageUri);
+```
+
+### 안읽음 메시지 관리
+```typescript
+// 실시간 안읽음 카운트 업데이트
+const notificationHandler = (notification) => {
+  if (notification.type === 'NEW_MESSAGE') {
+    // 안읽음 카운트 증가
+    updateUnreadCount(notification.roomId);
+  }
 };
 ```
 
-#### 3. 채팅 컴포넌트 사용
+## 문제 해결
 
-```typescript
-import ChatRoomList from './src/components/ChatRoomList';
-import ChatRoom from './src/components/ChatRoom';
+### WebSocket 연결 타임아웃
+- 서버가 실행 중인지 확인
+- 네트워크 연결 상태 확인
+- 방화벽 설정 확인
 
-// 채팅방 목록
-<ChatRoomList 
-  accessToken="your-jwt-token"
-  onRoomSelect={(roomId, roomName) => {
-    // 채팅방 선택 처리
-  }}
-/>
+### 이미지 전송 실패
+- Android 권한이 올바르게 설정되었는지 확인
+- 갤러리 접근 권한 허용
 
-// 채팅방
-<ChatRoom
-  roomId="room-id"
-  roomName="채팅방 이름"
-  accessToken="your-jwt-token"
-  onBack={() => {
-    // 뒤로가기 처리
-  }}
-/>
-```
+### 안읽음 카운트가 업데이트되지 않음
+- WebSocket 연결 상태 확인
+- 서버 로그에서 알림 전송 확인
 
-### 백엔드 설정
+## 개발 환경
 
-백엔드에서는 Spring Boot와 STOMP를 사용하여 WebSocket 서버를 구현했습니다.
+- **Node.js**: 18+
+- **React Native**: 0.79.2
+- **Java**: 11+
+- **Spring Boot**: 3.x
+- **MySQL**: 8.0+
 
-#### 주요 엔드포인트
-
-- **WebSocket 연결**: `/ws`
-- **메시지 전송**: `/app/chat/message`
-- **채팅방 입장**: `/app/chat/join`
-- **채팅방 퇴장**: `/app/chat/leave`
-- **채팅방 목록 요청**: `/app/chat/rooms`
-
-#### 구독 토픽
-
-- **개인 메시지**: `/user/queue/messages`
-- **채팅방 목록**: `/user/queue/rooms`
-- **채팅방 메시지**: `/topic/chat/room`
-
-### 환경 설정
-
-`src/utils/config.ts` 파일에서 WebSocket 서버 URL과 기타 설정을 변경할 수 있습니다.
-
-```typescript
-export const WEBSOCKET_CONFIG = {
-  DEV: {
-    WS_URL: 'ws://localhost:8080/ws',
-    API_URL: 'http://localhost:8080/api',
-  },
-  // 다른 환경 설정...
-};
-```
-
-### 보안 고려사항
-
-1. **JWT 토큰 관리**: 토큰 만료 시 자동 갱신 로직 구현 필요
-2. **CORS 설정**: 프로덕션 환경에서는 특정 도메인으로 제한
-3. **SSL/TLS**: 프로덕션 환경에서는 WSS(WebSocket Secure) 사용
-4. **인증 검증**: 서버에서 JWT 토큰 유효성 검증 필요
-
-## 📁 프로젝트 구조
-
-```
-src/
-├── components/          # 재사용 가능한 컴포넌트
-│   ├── ChatRoom.tsx    # 채팅방 컴포넌트
-│   └── ChatRoomList.tsx # 채팅방 목록 컴포넌트
-├── pages/              # 페이지 컴포넌트
-│   └── ChatPage.tsx    # 채팅 페이지
-├── utils/              # 유틸리티 함수
-│   ├── WebSocketContainer.ts # WebSocket 관리
-│   ├── useWebSocket.ts # WebSocket 훅
-│   └── config.ts       # 설정 파일
-└── types/              # TypeScript 타입 정의
-```
-
-## 🔧 개발 가이드
-
-### 새로운 채팅 기능 추가
-
-1. `WebSocketContainer.ts`에 새로운 메서드 추가
-2. `useWebSocket.ts`에 해당 기능을 훅으로 노출
-3. 필요한 컴포넌트에서 훅 사용
-
-### 에러 처리
-
-WebSocket 연결 실패, 메시지 전송 실패 등의 에러는 자동으로 처리되며, 사용자에게 적절한 알림이 표시됩니다.
-
-### 성능 최적화
-
-- 메시지 중복 방지
-- 자동 스크롤 최적화
-- 메모리 누수 방지를 위한 이벤트 리스너 정리
-
-## 📝 라이선스
+## 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.

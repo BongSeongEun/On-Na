@@ -6,6 +6,7 @@ interface UseWebSocketReturn {
   messages: ChatMessage[];
   rooms: ChatRoom[];
   sendMessage: (roomId: string, content: string, type?: 'TEXT' | 'IMAGE' | 'FILE') => Promise<boolean>;
+  sendImage: (roomId: string, imageUrl: string) => Promise<boolean>;
   joinRoom: (roomId: string) => Promise<boolean>;
   leaveRoom: (roomId: string) => Promise<boolean>;
   requestRoomList: () => Promise<boolean>;
@@ -16,6 +17,8 @@ interface UseWebSocketReturn {
   removeMessageHandler: (id: string) => void;
   addRoomHandler: (id: string, handler: Function) => void;
   removeRoomHandler: (id: string) => void;
+  addNotificationHandler: (id: string, handler: Function) => void;
+  removeNotificationHandler: (id: string) => void;
 }
 
 export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
@@ -26,6 +29,7 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
   
   const messageHandlers = useRef<Map<string, Function>>(new Map());
   const roomHandlers = useRef<Map<string, Function>>(new Map());
+  const notificationHandlers = useRef<Map<string, Function>>(new Map());
 
   // WebSocket 이벤트 핸들러들
   const handleConnected = useCallback(() => {
@@ -59,6 +63,11 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
     roomHandlers.current.forEach(handler => handler(data));
   }, []);
 
+  const handleNotification = useCallback((data: any) => {
+    // 등록된 알림 핸들러들 실행
+    notificationHandlers.current.forEach(handler => handler(data));
+  }, []);
+
   const handleError = useCallback((error: any) => {
     setError(error.message || 'WebSocket 에러가 발생했습니다.');
     console.error('WebSocket 에러:', error);
@@ -75,6 +84,7 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
     webSocketContainer.on('DISCONNECTED', handleDisconnected);
     webSocketContainer.on('MESSAGE', handleMessage);
     webSocketContainer.on('ROOM_LIST', handleRoomList);
+    webSocketContainer.on('NOTIFICATION', handleNotification);
     webSocketContainer.on('ERROR', handleError);
     webSocketContainer.on('TOKEN_EXPIRED', handleTokenExpired);
 
@@ -83,10 +93,11 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
       webSocketContainer.off('DISCONNECTED', handleDisconnected);
       webSocketContainer.off('MESSAGE', handleMessage);
       webSocketContainer.off('ROOM_LIST', handleRoomList);
+      webSocketContainer.off('NOTIFICATION', handleNotification);
       webSocketContainer.off('ERROR', handleError);
       webSocketContainer.off('TOKEN_EXPIRED', handleTokenExpired);
     };
-  }, [handleConnected, handleDisconnected, handleMessage, handleRoomList, handleError, handleTokenExpired]);
+  }, [handleConnected, handleDisconnected, handleMessage, handleRoomList, handleNotification, handleError, handleTokenExpired]);
 
   // 액세스 토큰 설정
   useEffect(() => {
@@ -113,6 +124,16 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
   // 룸 핸들러 제거 함수
   const removeRoomHandler = useCallback((id: string) => {
     roomHandlers.current.delete(id);
+  }, []);
+
+  // 알림 핸들러 등록 함수
+  const addNotificationHandler = useCallback((id: string, handler: Function) => {
+    notificationHandlers.current.set(id, handler);
+  }, []);
+
+  // 알림 핸들러 제거 함수
+  const removeNotificationHandler = useCallback((id: string) => {
+    notificationHandlers.current.delete(id);
   }, []);
 
   // WebSocket 연결
@@ -144,6 +165,18 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
       return result;
     } catch (error: any) {
       setError(error.message || '메시지 전송에 실패했습니다.');
+      return false;
+    }
+  }, []);
+
+  // 이미지 전송
+  const sendImage = useCallback(async (roomId: string, imageUrl: string): Promise<boolean> => {
+    try {
+      setError(null);
+      const result = await webSocketContainer.sendImage(roomId, imageUrl);
+      return result;
+    } catch (error: any) {
+      setError(error.message || '이미지 전송에 실패했습니다.');
       return false;
     }
   }, []);
@@ -189,6 +222,7 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
     messages,
     rooms,
     sendMessage,
+    sendImage,
     joinRoom,
     leaveRoom,
     requestRoomList,
@@ -200,6 +234,8 @@ export const useWebSocket = (accessToken?: string): UseWebSocketReturn => {
     removeMessageHandler,
     addRoomHandler,
     removeRoomHandler,
+    addNotificationHandler,
+    removeNotificationHandler,
   };
 };
 

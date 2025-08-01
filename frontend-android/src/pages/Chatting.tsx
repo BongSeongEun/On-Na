@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatMessage } from '../utils/WebSocketContainer';
 import useWebSocket from '../utils/useWebSocket';
 import { getUserIdFromToken } from '../utils/auth';
+import * as ImagePicker from 'react-native-image-picker';
 
 export default function Chatting({ route }: { route: any }) {
   const { chatRoomId, roomName, userId, accessToken } = route.params;
@@ -19,6 +20,7 @@ export default function Chatting({ route }: { route: any }) {
   const {
     isConnected,
     sendMessage,
+    sendImage,
     joinRoom,
     leaveRoom,
     error,
@@ -147,15 +149,64 @@ export default function Chatting({ route }: { route: any }) {
     }
   };
 
+  // 이미지 선택 및 전송
+  const handleImagePicker = () => {
+    const options = {
+      mediaType: 'photo' as const,
+      includeBase64: false,
+      maxHeight: 2000,
+      maxWidth: 2000,
+    };
+
+    ImagePicker.launchImageLibrary(options, (response: any) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        console.log('ImagePicker Error: ', response.error);
+        Alert.alert('오류', '이미지 선택에 실패했습니다.');
+      } else if (response.assets && response.assets[0]) {
+        const imageUri = response.assets[0].uri;
+        if (imageUri) {
+          sendImageMessage(imageUri);
+        }
+      }
+    });
+  };
+
+  // 이미지 전송
+  const sendImageMessage = async (imageUri: string) => {
+    try {
+      console.log('Sending image:', imageUri);
+      const success = await sendImage(chatRoomId.toString(), imageUri);
+      if (success) {
+        console.log('Image sent successfully');
+      } else {
+        console.error('Image send returned false');
+        Alert.alert('오류', '이미지 전송에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Image send error:', error);
+      Alert.alert('오류', '이미지 전송에 실패했습니다.');
+    }
+  };
+
   // 채팅 메시지 렌더링
   const renderItem = ({ item }: { item: ChatMessage }) => {
     const isMine = item.senderId === currentUserId;
     return (
       <View style={[styles.messageRow, isMine ? styles.myMessageRow : styles.otherMessageRow]}>
         <View style={[styles.bubble, isMine ? styles.myBubble : styles.otherBubble]}>
-          <Text style={[styles.messageText, isMine ? styles.myMessageText : styles.otherMessageText]}>
-            {item.content}
-          </Text>
+          {item.type === 'IMAGE' && item.imageUrl ? (
+            <Image 
+              source={{ uri: item.imageUrl }} 
+              style={styles.messageImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={[styles.messageText, isMine ? styles.myMessageText : styles.otherMessageText]}>
+              {item.content}
+            </Text>
+          )}
           <Text style={styles.timestamp}>
             {new Date(item.timestamp).toLocaleTimeString('ko-KR', {
               hour: '2-digit',
@@ -198,6 +249,13 @@ export default function Chatting({ route }: { route: any }) {
 
         {/* 메시지 입력 */}
         <View style={styles.inputRow}>
+          <TouchableOpacity 
+            style={styles.imageButton} 
+            onPress={handleImagePicker}
+            disabled={!isConnected}
+          >
+            <Text style={styles.imageButtonText}>📷</Text>
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             value={input}
@@ -299,6 +357,12 @@ const styles = StyleSheet.create({
   otherMessageText: {
     color: '#222',
   },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
   timestamp: {
     fontSize: 10,
     color: '#888',
@@ -310,7 +374,20 @@ const styles = StyleSheet.create({
     padding: 12, 
     backgroundColor: '#fff', 
     borderTopWidth: 1, 
-    borderColor: '#eee' 
+    borderColor: '#eee',
+    alignItems: 'flex-end',
+  },
+  imageButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  imageButtonText: {
+    fontSize: 18,
   },
   input: { 
     flex: 1, 
@@ -319,6 +396,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, 
     fontSize: 15,
     maxHeight: 100,
+    paddingVertical: 8,
   },
   sendBtn: { 
     marginLeft: 8, 
@@ -326,7 +404,8 @@ const styles = StyleSheet.create({
     borderRadius: 20, 
     paddingHorizontal: 20, 
     justifyContent: 'center', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    paddingVertical: 8,
   },
   sendBtnDisabled: {
     backgroundColor: '#ccc',
