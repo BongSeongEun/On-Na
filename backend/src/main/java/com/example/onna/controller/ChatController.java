@@ -157,13 +157,30 @@ public class ChatController {
 
     // 알림 객체 생성
     private Object createNotification(ChatMessageDto message) {
-        return new Object() {
-            public final String type = "NEW_MESSAGE";
-            public final String roomId = message.getRoomId();
-            public final String message = message.getContent();
-            public final String timestamp = message.getTimestamp().toString();
-            public final String senderId = message.getSenderId();
-        };
+        return new NotificationDto(
+            "NEW_MESSAGE",
+            message.getRoomId(),
+            message.getContent(),
+            message.getTimestamp().toString(),
+            message.getSenderId()
+        );
+    }
+
+    // 알림 DTO 클래스
+    private static class NotificationDto {
+        public final String type;
+        public final String roomId;
+        public final String message;
+        public final String timestamp;
+        public final String senderId;
+
+        public NotificationDto(String type, String roomId, String message, String timestamp, String senderId) {
+            this.type = type;
+            this.roomId = roomId;
+            this.message = message;
+            this.timestamp = timestamp;
+            this.senderId = senderId;
+        }
     }
 
     // 헤더에서 사용자 ID 추출 (JWT 토큰에서 추출)
