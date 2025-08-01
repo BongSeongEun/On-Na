@@ -44,6 +44,7 @@ const WebSocketTest: React.FC = () => {
     
     try {
       console.log('Testing WebSocket connection to:', getWebSocketUrl());
+      console.log('Testing WebSocket connection to:', getWebSocketUrl());
       await webSocketContainer.connect();
     } catch (error: any) {
       console.error('Connection test failed:', error);
