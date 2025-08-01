@@ -39,9 +39,10 @@ public class ChatController {
         chatMessage.setId(UUID.randomUUID().toString());
         chatMessage.setTimestamp(LocalDateTime.now());
         
-        // senderId가 없으면 세션 ID 사용
+        // senderId가 없으면 JWT에서 추출한 사용자 ID 사용
         if (chatMessage.getSenderId() == null || chatMessage.getSenderId().isEmpty()) {
-            chatMessage.setSenderId(getUserIdFromHeader(headerAccessor));
+            String userId = getUserIdFromHeader(headerAccessor);
+            chatMessage.setSenderId(userId);
         }
         
         log.info("Processed message: {}", chatMessage);
@@ -120,10 +121,29 @@ public class ChatController {
         );
     }
 
-    // 헤더에서 사용자 ID 추출 (JWT 토큰에서 추출하는 로직으로 대체 필요)
+    // 헤더에서 사용자 ID 추출 (JWT 토큰에서 추출)
     private String getUserIdFromHeader(SimpMessageHeaderAccessor headerAccessor) {
-        // 실제 구현에서는 JWT 토큰을 파싱하여 사용자 ID를 추출
-        // 여기서는 임시로 세션 ID를 사용
-        return headerAccessor.getSessionId();
+        try {
+            // JWT에서 추출된 사용자 정보 사용
+            if (headerAccessor.getUser() != null) {
+                String userId = headerAccessor.getUser().getName();
+                log.info("Extracted userId from JWT: {}", userId);
+                return userId;
+            }
+            
+            // 세션 속성에서 사용자 ID 확인
+            Object sessionUserId = headerAccessor.getSessionAttributes().get("userId");
+            if (sessionUserId != null) {
+                log.info("Extracted userId from session: {}", sessionUserId);
+                return sessionUserId.toString();
+            }
+            
+            // 기본값으로 세션 ID 사용
+            log.warn("No userId found, using session ID as fallback");
+            return headerAccessor.getSessionId();
+        } catch (Exception e) {
+            log.error("Error extracting userId from header: {}", e.getMessage());
+            return headerAccessor.getSessionId();
+        }
     }
 }

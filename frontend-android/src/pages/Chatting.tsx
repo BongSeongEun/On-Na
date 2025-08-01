@@ -12,6 +12,7 @@ export default function Chatting({ route }: { route: any }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [isConnecting, setIsConnecting] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // WebSocket 훅 사용
@@ -23,6 +24,7 @@ export default function Chatting({ route }: { route: any }) {
     error,
     addMessageHandler,
     removeMessageHandler,
+    connect,
   } = useWebSocket(accessToken);
 
   // 실제 사용자 ID 가져오기
@@ -31,6 +33,7 @@ export default function Chatting({ route }: { route: any }) {
       try {
         const id = await getUserIdFromToken();
         setCurrentUserId(id ? id.toString() : '');
+        console.log('Current user ID set:', id);
       } catch (error) {
         console.error('사용자 ID 가져오기 실패:', error);
       }
@@ -39,14 +42,39 @@ export default function Chatting({ route }: { route: any }) {
     getCurrentUserId();
   }, []);
 
+  // WebSocket 연결 시도
+  useEffect(() => {
+    const connectWebSocket = async () => {
+      if (!isConnected && !isConnecting) {
+        setIsConnecting(true);
+        try {
+          console.log('Attempting to connect WebSocket...');
+          await connect();
+        } catch (error) {
+          console.error('WebSocket 연결 실패:', error);
+          Alert.alert('연결 오류', '채팅 서버에 연결할 수 없습니다.');
+        } finally {
+          setIsConnecting(false);
+        }
+      }
+    };
+
+    connectWebSocket();
+  }, [isConnected, isConnecting, connect]);
+
   // 메시지 핸들러 등록
   useEffect(() => {
     const messageHandler = (newMessage: ChatMessage) => {
+      console.log('Received message:', newMessage);
       if (newMessage.roomId === chatRoomId.toString()) {
         setMessages(prev => {
           // 중복 메시지 방지
           const exists = prev.find(msg => msg.id === newMessage.id);
-          if (exists) return prev;
+          if (exists) {
+            console.log('Duplicate message ignored:', newMessage.id);
+            return prev;
+          }
+          console.log('Adding new message:', newMessage);
           return [...prev, newMessage];
         });
       }
@@ -62,10 +90,12 @@ export default function Chatting({ route }: { route: any }) {
   // 채팅방 입장
   useEffect(() => {
     const enterRoom = async () => {
-      if (isConnected) {
+      if (isConnected && currentUserId) {
         try {
+          console.log('Joining room:', chatRoomId);
           await joinRoom(chatRoomId.toString());
         } catch (error) {
+          console.error('채팅방 입장 실패:', error);
           Alert.alert('오류', '채팅방 입장에 실패했습니다.');
         }
       }
@@ -75,15 +105,18 @@ export default function Chatting({ route }: { route: any }) {
 
     return () => {
       // 컴포넌트 언마운트 시 채팅방 퇴장
-      leaveRoom(chatRoomId.toString()).catch(() => {
-        // 퇴장 실패는 무시
-      });
+      if (isConnected) {
+        leaveRoom(chatRoomId.toString()).catch(() => {
+          // 퇴장 실패는 무시
+        });
+      }
     };
-  }, [isConnected, chatRoomId, joinRoom, leaveRoom]);
+  }, [isConnected, chatRoomId, currentUserId, joinRoom, leaveRoom]);
 
   // 에러 처리
   useEffect(() => {
     if (error) {
+      console.error('WebSocket error:', error);
       Alert.alert('오류', error);
     }
   }, [error]);
@@ -146,7 +179,7 @@ export default function Chatting({ route }: { route: any }) {
           <View style={styles.connectionStatus}>
             <View style={[styles.statusDot, { backgroundColor: isConnected ? '#28a745' : '#dc3545' }]} />
             <Text style={styles.statusText}>
-              {isConnected ? '연결됨' : '연결 안됨'}
+              {isConnecting ? '연결 중...' : isConnected ? '연결됨' : '연결 안됨'}
             </Text>
           </View>
         </View>

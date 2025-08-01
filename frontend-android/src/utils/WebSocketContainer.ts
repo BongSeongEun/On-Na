@@ -121,12 +121,6 @@ class WebSocketContainer {
         this.stompClient = Stomp.over(socket);
         console.log('STOMP 클라이언트 생성됨');
 
-        // 연결 헤더에 JWT 토큰 추가
-        const headers = this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {};
-        console.log('WebSocket connection headers:', headers);
-
-        console.log('STOMP 연결 시도 중...');
-        
         // 연결 타임아웃 설정 (30초로 증가)
         const connectionTimeout = setTimeout(() => {
           console.error('=== WebSocket 연결 타임아웃 ===');
@@ -135,11 +129,15 @@ class WebSocketContainer {
           reject(new Error('Connection timeout'));
         }, 30000); // 30초 타임아웃
         
-        // STOMP 연결 설정
-        const connectHeaders = {
-          ...headers,
+        // STOMP 연결 설정 - JWT 토큰을 헤더에 추가
+        const connectHeaders: any = {
           'heart-beat': '10000,10000', // 하트비트 설정
         };
+        
+        // JWT 토큰이 있으면 Authorization 헤더에 추가
+        if (this.accessToken) {
+          connectHeaders['Authorization'] = `Bearer ${this.accessToken}`;
+        }
         
         console.log('STOMP 연결 헤더:', connectHeaders);
         
@@ -219,7 +217,9 @@ class WebSocketContainer {
       }
 
       try {
+        // JWT 토큰에서 사용자 ID 가져오기
         const senderId = await this.getUserIdFromSession();
+        
         const message = {
           roomId,
           content,
@@ -232,6 +232,7 @@ class WebSocketContainer {
         this.stompClient.send('/app/chat/message', {}, JSON.stringify(message));
         resolve(true);
       } catch (error) {
+        console.error('Error sending message:', error);
         this.emit('ERROR', { message: '메시지 전송 실패', error });
         reject(error);
       }
@@ -242,7 +243,13 @@ class WebSocketContainer {
   public async getUserIdFromSession(): Promise<string> {
     try {
       const userId = await getUserIdFromToken();
-      return userId ? userId.toString() : 'unknown';
+      if (userId) {
+        console.log('User ID from token:', userId);
+        return userId.toString();
+      } else {
+        console.warn('No user ID found in token');
+        return 'unknown';
+      }
     } catch (error) {
       console.error('Error getting user ID from token:', error);
       return 'unknown';
@@ -258,9 +265,11 @@ class WebSocketContainer {
       }
 
       try {
-        this.stompClient.send('/app/chat/join', {}, JSON.stringify({ roomId }));
+        console.log('Joining room:', roomId);
+        this.stompClient.send('/app/chat/join', {}, roomId);
         resolve(true);
       } catch (error) {
+        console.error('Error joining room:', error);
         this.emit('ERROR', { message: '채팅방 입장 실패', error });
         reject(error);
       }
@@ -276,9 +285,11 @@ class WebSocketContainer {
       }
 
       try {
-        this.stompClient.send('/app/chat/leave', {}, JSON.stringify({ roomId }));
+        console.log('Leaving room:', roomId);
+        this.stompClient.send('/app/chat/leave', {}, roomId);
         resolve(true);
       } catch (error) {
+        console.error('Error leaving room:', error);
         this.emit('ERROR', { message: '채팅방 퇴장 실패', error });
         reject(error);
       }
@@ -294,9 +305,11 @@ class WebSocketContainer {
       }
 
       try {
+        console.log('Requesting room list');
         this.stompClient.send('/app/chat/rooms', {}, JSON.stringify({}));
         resolve(true);
       } catch (error) {
+        console.error('Error requesting room list:', error);
         this.emit('ERROR', { message: '채팅방 목록 요청 실패', error });
         reject(error);
       }

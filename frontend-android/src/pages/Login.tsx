@@ -83,7 +83,7 @@ const LinkText = styled.Text`
 `;
 
 const api = axios.create({
-  baseURL: `http://10.140.238.23:8080`,
+  baseURL: `http://43.201.141.164:8080`,
 });
 
 api.interceptors.request.use(async (config) => {

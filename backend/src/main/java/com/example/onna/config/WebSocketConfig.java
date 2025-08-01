@@ -14,12 +14,28 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.AbstractMessageChannel;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import java.util.Map;
 
 @Configuration
 @EnableWebSocketMessageBroker
 @Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -51,6 +67,27 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                                 java.util.Map<String, Object> attributes) throws Exception {
                         log.info("WebSocket handshake request from: {}", request.getRemoteAddress());
                         log.info("Request headers: {}", request.getHeaders());
+                        
+                        // Authorization 헤더에서 JWT 토큰 추출
+                        String authHeader = request.getHeaders().getFirst("Authorization");
+                        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                            String token = authHeader.substring(7);
+                            try {
+                                // JWT 토큰 파싱 (JJWT 0.12.3 버전에 맞는 API 사용)
+                                Claims claims = Jwts.parser()
+                                    .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
+                                    .build()
+                                    .parseSignedClaims(token)
+                                    .getPayload();
+                                
+                                String userId = claims.getSubject();
+                                attributes.put("userId", userId);
+                                log.info("JWT token parsed, userId: {}", userId);
+                            } catch (Exception e) {
+                                log.warn("Invalid JWT token: {}", e.getMessage());
+                            }
+                        }
+                        
                         return true;
                     }
 
@@ -100,5 +137,47 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         log.info("=== STOMP 구독 ===");
         log.info("Session ID: {}", headerAccessor.getSessionId());
         log.info("Destination: {}", headerAccessor.getDestination());
+    }
+}
+
+// JWT 토큰 인터셉터
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@Slf4j
+class JwtChannelInterceptor implements ChannelInterceptor {
+    
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+    
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        
+        if (accessor != null && accessor.getCommand() != null) {
+            log.info("STOMP Command: {}", accessor.getCommand());
+            
+            // CONNECT 명령에서 JWT 토큰 처리
+            if (accessor.getCommand().name().equals("CONNECT")) {
+                String authHeader = accessor.getFirstNativeHeader("Authorization");
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    String token = authHeader.substring(7);
+                    try {
+                        Claims claims = Jwts.parser()
+                            .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes()))
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload();
+                        
+                        String userId = claims.getSubject();
+                        accessor.setUser(() -> userId);
+                        log.info("User authenticated via JWT: {}", userId);
+                    } catch (Exception e) {
+                        log.warn("Invalid JWT token in STOMP connect: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+        
+        return message;
     }
 }
