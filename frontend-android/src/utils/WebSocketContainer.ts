@@ -97,6 +97,12 @@ class WebSocketContainer {
         console.log('WebSocket URL:', this.WS_URL);
         console.log('Access Token:', this.accessToken ? '있음' : '없음');
         
+        if (!this.accessToken) {
+          console.error('Access Token이 없습니다. 연결을 중단합니다.');
+          reject(new Error('Access Token이 필요합니다.'));
+          return;
+        }
+        
         // SockJS 옵션 설정 - 타임아웃 증가
         const sockjsOptions = {
           transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
@@ -115,6 +121,8 @@ class WebSocketContainer {
         
         socket.onclose = (event) => {
           console.log('=== SockJS 연결 종료 ===', event);
+          console.log('Close event code:', event.code);
+          console.log('Close event reason:', event.reason);
           this.isConnected = false;
           this.emit('DISCONNECTED');
         };
@@ -142,6 +150,11 @@ class WebSocketContainer {
         // JWT 토큰이 있으면 Authorization 헤더에 추가
         if (this.accessToken) {
           connectHeaders['Authorization'] = `Bearer ${this.accessToken}`;
+          console.log('JWT 토큰이 헤더에 추가됨');
+          console.log('토큰 길이:', this.accessToken.length);
+          console.log('토큰 시작 부분:', this.accessToken.substring(0, 20) + '...');
+        } else {
+          console.error('Access Token이 없어서 연결이 실패할 수 있습니다.');
         }
         
         console.log('STOMP 연결 헤더:', connectHeaders);
@@ -166,6 +179,13 @@ class WebSocketContainer {
             console.error('Error details:', error);
             console.error('Error message:', error.message);
             console.error('Error stack:', error.stack);
+            
+            // JWT 토큰 관련 에러 확인
+            if (error.message && error.message.includes('401')) {
+              console.error('JWT 토큰 인증 실패');
+              this.emit('TOKEN_EXPIRED');
+            }
+            
             if (this.connectionTimeout) {
               clearTimeout(this.connectionTimeout);
               this.connectionTimeout = null;

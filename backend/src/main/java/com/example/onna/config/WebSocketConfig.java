@@ -82,10 +82,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                 
                                 String userId = claims.getSubject();
                                 attributes.put("userId", userId);
-                                log.info("JWT token parsed, userId: {}", userId);
+                                log.info("JWT token parsed successfully, userId: {}", userId);
                             } catch (Exception e) {
-                                log.warn("Invalid JWT token: {}", e.getMessage());
+                                log.warn("Invalid JWT token during handshake: {}", e.getMessage());
+                                // JWT 토큰이 유효하지 않아도 연결은 허용 (나중에 처리)
+                                attributes.put("userId", "anonymous");
                             }
+                        } else {
+                            log.info("No Authorization header found, allowing connection as anonymous");
+                            attributes.put("userId", "anonymous");
                         }
                         
                         return true;
@@ -173,7 +178,12 @@ class JwtChannelInterceptor implements ChannelInterceptor {
                         log.info("User authenticated via JWT: {}", userId);
                     } catch (Exception e) {
                         log.warn("Invalid JWT token in STOMP connect: {}", e.getMessage());
+                        // JWT 토큰이 유효하지 않아도 연결은 허용
+                        accessor.setUser(() -> "anonymous");
                     }
+                } else {
+                    log.info("No Authorization header in STOMP connect, using anonymous user");
+                    accessor.setUser(() -> "anonymous");
                 }
             }
         }
