@@ -213,19 +213,29 @@ function Chat_room() {
             const response = await api.get(`/api/chat/rooms/${currentUserId}`);
             const chatRoomResponses: ChatRoomResponse[] = response.data;
             
-            const formattedChatRooms: ChatRoom[] = chatRoomResponses.map((room, index) => ({
-                id: index.toString(),
-                roomId: room.roomId || '',
-                userAId: currentUserId, // 실제 사용자 ID 사용
-                userBId: room.userId || 0,
-                userName: room.userName || '상대방',
-                lastMessage: room.lastMessage || '',
-                timestamp: formatTimestamp(room.timestamp || ''),
-                unreadCount: room.unreadCount || 0,
-                profileImage: room.userName ? 
-                    `https://private-user-images.githubusercontent.com/102515499/375417490-e360dc37-556b-48da-92b6-83e58bc250cd.jpg?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NTQ0MDQ3NDAsIm5iZiI6MTc1NDQwNDQ0MCwicGF0aCI6Ii8xMDI1MTU0OTkvMzc1NDE3NDkwLWUzNjBkYzM3LTU1NmItNDhkYS05MmI2LTgzZTU4YmMyNTBjZC5qcGc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwODA1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDgwNVQxNDM0MDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1kMmMxM2JiMjBmNDhkMGQ3Y2NkZDM0Zjg3YTg5OTVlZDZiMDI5OWU0ZjM3N2ViN2M1OTVkM2E4MDIwMWQ0MzIzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.hAliSevribhMkeHzuhrhq_YGQto1hHGkxqBc35RXxss` :
-                    'https://via.placeholder.com/50'
-            }));
+            const formattedChatRooms: ChatRoom[] = chatRoomResponses.map((room, index) => {
+                // 안전한 값 추출
+                const safeRoomId = room.roomId || '';
+                const safeUserId = room.userId || 0;
+                const safeUserName = room.userName || '상대방';
+                const safeLastMessage = room.lastMessage || '';
+                const safeTimestamp = room.timestamp || '';
+                const safeUnreadCount = room.unreadCount || 0;
+                
+                return {
+                    id: index.toString(),
+                    roomId: safeRoomId,
+                    userAId: currentUserId,
+                    userBId: safeUserId,
+                    userName: safeUserName,
+                    lastMessage: safeLastMessage,
+                    timestamp: formatTimestamp(safeTimestamp),
+                    unreadCount: safeUnreadCount,
+                    profileImage: safeUserName ? 
+                        `https://private-user-images.githubusercontent.com/102515499/375417490-e360dc37-556b-48da-92b6-83e58bc250cd.jpg?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NTQ0MDQ3NDAsIm5iZiI6MTc1NDQwNDQ0MCwicGF0aCI6Ii8xMDI1MTU0OTkvMzc1NDE3NDkwLWUzNjBkYzM3LTU1NmItNDhkYS05MmI2LTgzZTU4YmMyNTBjZC5qcGc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwODA1JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDgwNVQxNDM0MDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1kMmMxM2JiMjBmNDhkMGQ3Y2NkZDM0Zjg3YTg5OTVlZDZiMDI5OWU0ZjM3N2ViN2M1OTVkM2E4MDIwMWQ0MzIzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.hAliSevribhMkeHzuhrhq_YGQto1hHGkxqBc35RXxss` :
+                        'https://via.placeholder.com/50'
+                };
+            });
             
             setChatRooms(formattedChatRooms);
         } catch (err) {
@@ -244,32 +254,42 @@ function Chat_room() {
         room.userName && room.userName.includes(searchText)
     );
 
-    const renderChatRoom = ({ item }: { item: ChatRoom }) => (
-        <ChatRoomItem onPress={() => {
-            console.log('채팅방 열기:', item.roomId);
-            // 채팅방 페이지로 이동
-            (navigation as any).navigate('Chatting', {
-                roomId: item.roomId || '',
-                userName: item.userName || '상대방'
-            });
-        }}>
-            <ProfileImage source={{ uri: item.profileImage || 'https://via.placeholder.com/50' }} />
-            <ChatInfoContainer>
-                <ChatHeader>
-                    <UserName>{item.userName || '상대방'}</UserName>
-                    <TimeText>{item.timestamp || ''}</TimeText>
-                </ChatHeader>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <LastMessage numberOfLines={1}>{item.lastMessage || ''}</LastMessage>
-                    {item.unreadCount && item.unreadCount > 0 && (
-                        <UnreadBadge>
-                            <UnreadCount>{item.unreadCount}</UnreadCount>
-                        </UnreadBadge>
-                    )}
-                </View>
-            </ChatInfoContainer>
-        </ChatRoomItem>
-    );
+    const renderChatRoom = ({ item }: { item: ChatRoom }) => {
+        // 안전한 값 추출
+        const safeUserName = item.userName || '상대방';
+        const safeTimestamp = item.timestamp || '';
+        const safeLastMessage = item.lastMessage || '';
+        const safeUnreadCount = item.unreadCount || 0;
+        const safeProfileImage = item.profileImage || 'https://via.placeholder.com/50';
+        const safeRoomId = item.roomId || '';
+
+        return (
+            <ChatRoomItem onPress={() => {
+                console.log('채팅방 열기:', safeRoomId);
+                // 채팅방 페이지로 이동
+                (navigation as any).navigate('Chatting', {
+                    roomId: safeRoomId,
+                    userName: safeUserName
+                });
+            }}>
+                <ProfileImage source={{ uri: safeProfileImage }} />
+                <ChatInfoContainer>
+                    <ChatHeader>
+                        <UserName>{safeUserName}</UserName>
+                        <TimeText>{safeTimestamp}</TimeText>
+                    </ChatHeader>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <LastMessage numberOfLines={1}>{safeLastMessage}</LastMessage>
+                        {safeUnreadCount > 0 && (
+                            <UnreadBadge>
+                                <UnreadCount>{safeUnreadCount}</UnreadCount>
+                            </UnreadBadge>
+                        )}
+                    </View>
+                </ChatInfoContainer>
+            </ChatRoomItem>
+        );
+    };
 
     if (loading) {
         return (
@@ -295,7 +315,7 @@ function Chat_room() {
                 </HeaderContainer>
                 
                 <SearchContainer>
-                    <Text>🔍</Text>
+                    <Text style={{ fontSize: 16 }}>🔍</Text>
                     <SearchInput
                         placeholder="채팅방 검색"
                         value={searchText}

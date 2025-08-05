@@ -19,6 +19,7 @@ import * as Keychain from 'react-native-keychain';
 import { getCurrentUserId } from '../utils/jwtUtils';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
+import { useNavigation } from '@react-navigation/native';
 
 // 타입 정의
 interface ChatMessage {
@@ -165,6 +166,7 @@ api.interceptors.request.use(async (config) => {
 });
 
 function Chatting({ route }: ChattingProps) {
+    const navigation = useNavigation();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -231,10 +233,12 @@ function Chatting({ route }: ChattingProps) {
 
     // WebSocket 연결
     const connectWebSocket = () => {
+        console.log('WebSocket 연결 시도:', `${BASE_URL}/ws-chat`);
+        
         const client = new Client({
             webSocketFactory: () => new SockJS(`${BASE_URL}/ws-chat`),
             debug: (str: any) => {
-                console.log(str);
+                console.log('WebSocket Debug:', str);
             },
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
@@ -242,11 +246,12 @@ function Chatting({ route }: ChattingProps) {
         });
 
         client.onConnect = (frame) => {
-            console.log('WebSocket 연결됨');
+            console.log('WebSocket 연결 성공:', frame);
             setConnected(true);
             
             // 채팅방 구독
             client.subscribe(`/topic/chat/${roomId}`, (message) => {
+                console.log('메시지 수신:', message.body);
                 const receivedMessage = JSON.parse(message.body);
                 const newMessage: ChatMessage = {
                     id: Date.now().toString(),
@@ -267,13 +272,22 @@ function Chatting({ route }: ChattingProps) {
             setConnected(false);
         };
 
-        client.activate();
-        setStompClient(client);
+        try {
+            client.activate();
+            setStompClient(client);
+        } catch (error) {
+            console.error('WebSocket 활성화 실패:', error);
+            setConnected(false);
+        }
     };
 
     // 메시지 전송
     const sendMessage = async () => {
-        if (!newMessage.trim() || !stompClient || !connected || !currentUserId) {
+        if (!newMessage.trim() || !currentUserId) {
+            console.log('전송 조건 확인:', {
+                hasMessage: !!newMessage.trim(),
+                currentUserId
+            });
             return;
         }
 
@@ -284,13 +298,44 @@ function Chatting({ route }: ChattingProps) {
         };
 
         try {
-            // WebSocket으로 메시지 전송
-            stompClient.publish({
-                destination: '/app/chat.send',
-                body: JSON.stringify(messageData)
-            });
-
+            console.log('메시지 전송 시도:', messageData);
+            
+            // 로컬에서 즉시 메시지 추가
+            const localMessage: ChatMessage = {
+                id: Date.now().toString(),
+                roomId: roomId,
+                senderId: currentUserId,
+                message: newMessage.trim(),
+                timestamp: new Date().toISOString(),
+                read: false,
+                isMyMessage: true
+            };
+            
+            setMessages(prev => [...prev, localMessage]);
             setNewMessage('');
+
+            // HTTP API로 메시지 전송 (WebSocket 연결 여부와 관계없이)
+            try {
+                console.log('HTTP API로 메시지 전송');
+                await api.post('/api/chat/send', messageData);
+                console.log('HTTP 메시지 전송 성공');
+            } catch (httpError) {
+                console.error('HTTP 메시지 전송 실패:', httpError);
+                Alert.alert('오류', '메시지 전송에 실패했습니다.');
+            }
+
+            // WebSocket으로도 전송 시도 (연결된 경우에만)
+            if (stompClient && connected) {
+                try {
+                    stompClient.publish({
+                        destination: '/app/chat.send',
+                        body: JSON.stringify(messageData)
+                    });
+                    console.log('WebSocket 메시지 전송 성공');
+                } catch (wsError) {
+                    console.error('WebSocket 메시지 전송 실패:', wsError);
+                }
+            }
         } catch (error) {
             console.error('메시지 전송 실패:', error);
             Alert.alert('오류', '메시지 전송에 실패했습니다.');
@@ -357,8 +402,11 @@ function Chatting({ route }: ChattingProps) {
             >
                 <MainContainer>
                     <HeaderContainer>
-                        <BackButton onPress={() => {/* 뒤로가기 로직 */}}>
-                            <Text>←</Text>
+                        <BackButton onPress={() => {
+                            console.log('뒤로가기 버튼 클릭');
+                            (navigation as any).goBack();
+                        }}>
+                            <Text style={{ fontSize: 20, color: '#333' }}>←</Text>
                         </BackButton>
                         <HeaderTitle>{userName}</HeaderTitle>
                     </HeaderContainer>
@@ -394,8 +442,13 @@ function Chatting({ route }: ChattingProps) {
                             placeholder="메시지를 입력하세요..."
                             multiline
                             maxLength={500}
+                            onSubmitEditing={sendMessage}
                         />
-                        <SendButton onPress={sendMessage} disabled={!newMessage.trim()}>
+                        <SendButton 
+                            onPress={sendMessage} 
+                            disabled={!newMessage.trim()}
+                            style={{ opacity: !newMessage.trim() ? 0.5 : 1 }}
+                        >
                             <SendButtonText>전송</SendButtonText>
                         </SendButton>
                     </InputContainer>
