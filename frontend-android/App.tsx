@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from 'react-native-splash-screen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import Login from './src/pages/Login1';
+import Login from './src/pages/Login';
 import Home from './src/pages/Home';
 import Calendar_main from './src/pages/Calendar_main';
 import Map_main from './src/pages/Map_main';
