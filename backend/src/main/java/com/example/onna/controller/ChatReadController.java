@@ -48,7 +48,7 @@ public class ChatReadController {
                 return ChatRoomListDto.builder()
                     .roomId(room.getRoomId())
                     .userId(otherUserId)
-                    .userName(otherUser != null ? otherUser.getUserName() : "Unknown")
+                    .userName(otherUser != null ? otherUser.getNickname() : "Unknown")
                     .lastMessage(lastMessage != null ? lastMessage.getMessage() : "")
                     .timestamp(lastMessage != null ? lastMessage.getTimestamp().toString() : "")
                     .unreadCount((int) unreadCount)

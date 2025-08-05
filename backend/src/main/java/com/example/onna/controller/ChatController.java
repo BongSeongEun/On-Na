@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Slf4j
 @Controller
@@ -35,7 +36,8 @@ public class ChatController {
         entity.setSenderId(message.getSenderId());
         entity.setMessage(message.getMessage());
         entity.setRead(false);
-        entity.setTimestamp(LocalDateTime.now());
+        // 한국 시간대(UTC+9)로 설정
+        entity.setTimestamp(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         chatMessageRepository.save(entity);
 
         messagingTemplate.convertAndSend("/topic/chat/" + message.getRoomId(), message);
@@ -48,7 +50,8 @@ public class ChatController {
         entity.setSenderId(message.getSenderId());
         entity.setMessage(message.getMessage());
         entity.setRead(false);
-        entity.setTimestamp(LocalDateTime.now());
+        // 한국 시간대(UTC+9)로 설정
+        entity.setTimestamp(LocalDateTime.now(ZoneId.of("Asia/Seoul")));
         chatMessageRepository.save(entity);
 
         // WebSocket으로도 전송
