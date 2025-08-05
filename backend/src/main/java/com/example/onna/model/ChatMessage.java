@@ -1,5 +1,6 @@
 package com.example.onna.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -20,6 +21,7 @@ public class ChatMessage {
     private String roomId;
     private Long senderId;
     private String message;
+    @Column(name = "is_read")
     private boolean read;
     private LocalDateTime timestamp;
 }
