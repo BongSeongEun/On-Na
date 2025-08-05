@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/native';
 import NavBar from '../components/NavBar';
 import { Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MainContainer = styled.View`
     width: 100%;
@@ -15,12 +16,14 @@ const NavContainer = styled.View`
 `;
 function Map_main() {
     return (
-        <MainContainer>
-            <Text>Map_main</Text>
+        <SafeAreaView style={{flex: 1}}>
+            <MainContainer>
+                <Text>Map_main</Text>
+            </MainContainer>
             <NavContainer>
                 <NavBar />
             </NavContainer>
-        </MainContainer>
+        </SafeAreaView>
     );
 }
 

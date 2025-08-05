@@ -19,10 +19,10 @@ function Chat_main() {
         <SafeAreaView style={{flex: 1}}>
             <MainContainer>
                 <Text>Chat_main</Text>
-                <NavContainer>
-                    <NavBar />
-                </NavContainer>
             </MainContainer>
+            <NavContainer>
+                <NavBar />
+            </NavContainer>
         </SafeAreaView>
     );
 }

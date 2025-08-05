@@ -8,7 +8,7 @@ import Login from './src/pages/Login';
 import Home from './src/pages/Home';
 import Calendar_main from './src/pages/Calendar_main';
 import Map_main from './src/pages/Map_main';
-import Chat_main from './src/pages/Chat_main';
+import Chat_main from './src/pages/Chat_room';
 import My_page from './src/pages/My_page';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Hamburger from './src/pages/Hamburger';
