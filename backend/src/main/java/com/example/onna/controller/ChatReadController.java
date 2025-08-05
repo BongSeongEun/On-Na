@@ -1,5 +1,6 @@
 package com.example.onna.controller;
 
+import com.example.onna.dto.ChatMessageDto;
 import com.example.onna.dto.ChatRoomListDto;
 import com.example.onna.model.ChatMessage;
 import com.example.onna.model.ChatRoom;
@@ -56,6 +57,23 @@ public class ChatReadController {
             .collect(Collectors.toList());
         
         return ResponseEntity.ok(chatRoomList);
+    }
+
+    @GetMapping("/messages/{roomId}")
+    public ResponseEntity<List<ChatMessageDto>> getChatMessages(@PathVariable String roomId) {
+        List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderByTimestampAsc(roomId);
+        
+        List<ChatMessageDto> messageDtos = messages.stream()
+            .map(message -> ChatMessageDto.builder()
+                .roomId(message.getRoomId())
+                .senderId(message.getSenderId())
+                .message(message.getMessage())
+                .timestamp(message.getTimestamp().toString())
+                .read(message.isRead())
+                .build())
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(messageDtos);
     }
 
     @PostMapping("/read/{roomId}/{userId}")

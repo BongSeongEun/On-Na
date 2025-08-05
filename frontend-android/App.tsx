@@ -12,6 +12,7 @@ import Chat_main from './src/pages/Chat_room';
 import My_page from './src/pages/My_page';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Hamburger from './src/pages/Hamburger';
+import Chatting from './src/pages/Chatting';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +38,7 @@ function App() {
           <Stack.Screen name="Chat_main" component={Chat_main} options={{headerShown: false}} />
           <Stack.Screen name="My_page" component={My_page} options={{headerShown: false}} />
           <Stack.Screen name="Hamburger" component={Hamburger} options={{headerShown: false, animation: 'slide_from_left'}} />
+          <Stack.Screen name="Chatting" component={Chatting} options={{headerShown: false}} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
